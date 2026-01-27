@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd">
+
+	<bean id="csrfTokenRepository" class="org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository" />
+
+	<!-- 인증 진입점(필수): 인증을 강제하지 않더라도 http 설정에 필요 -->
+	<bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
+
+	<security:http use-expressions="true" entry-point-ref="authenticationEntryPoint">
+		<security:csrf token-repository-ref="csrfTokenRepository" request-matcher-ref="csrfRequestMatcher" />
+		<security:headers>
+			<security:frame-options policy="SAMEORIGIN" />
+		</security:headers>
+		<security:intercept-url pattern="/**" access="permitAll" />
+	</security:http>
+
+	<!-- 인증을 강제하지 않더라도 SecurityFilterChain 구성을 위해 선언 -->
+	<security:authentication-manager />
+
+	<!-- CSRF 예외 처리 RequestMatcher: 안전 메서드는 제외, 특정 경로만 예외 -->
+	<bean id="csrfRequestMatcher" class="org.springframework.security.web.util.matcher.AndRequestMatcher">
+		<constructor-arg>
+			<list>
+				<!-- GET메소드는 CSRF 검사 제외 -->
+				<bean class="org.springframework.security.web.util.matcher.NegatedRequestMatcher">
+					<constructor-arg>
+						<bean class="org.springframework.security.web.util.matcher.OrRequestMatcher">
+							<constructor-arg>
+								<list>
+									<bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+										<constructor-arg value="/**" />
+										<constructor-arg value="GET" />
+									</bean>
+								</list>
+							</constructor-arg>
+						</bean>
+					</constructor-arg>
+				</bean>
+				<bean class="org.springframework.security.web.util.matcher.NegatedRequestMatcher">
+					<constructor-arg>
+						<bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+							<constructor-arg value="/cmmn/juso/jusoPop.do" />
+						</bean>
+					</constructor-arg>
+				</bean>
+				<bean class="org.springframework.security.web.util.matcher.NegatedRequestMatcher">
+					<constructor-arg>
+						<bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+							<constructor-arg value="예외주소2" />
+						</bean>
+					</constructor-arg>
+				</bean>
+			</list>
+		</constructor-arg>
+	</bean>
+</beans>

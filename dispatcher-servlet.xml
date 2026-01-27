@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+				http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+				http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+				http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd">
+
+	<!-- 프로퍼티 파일 로드 설정 추가 -->
+	<context:property-placeholder location="classpath:/properties/globals.properties" />
+
+	<!-- 패키지 내 Controller, Service, Repository 클래스의 auto detect를 위한 mvc 설정 -->
+	<context:component-scan base-package="com.yesjnet">
+		<context:include-filter type="annotation" expression="org.springframework.stereotype.Controller" />
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Service" />
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Repository" />
+	</context:component-scan>
+
+	<!-- 스케줄러 설정 -->
+	<task:annotation-driven />
+
+	<!-- Jackson 처리에 대한 mvc 설정 -->
+	<bean id="jacksonMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
+	<mvc:annotation-driven>
+		<mvc:message-converters>
+			<bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+				<!-- <property name="supportedMediaTypes" value="text/plain;charset=UTF-8" /> -->
+				<property name="supportedMediaTypes" value="application/json;charset=UTF-8" />
+			</bean>
+		</mvc:message-converters>
+	</mvc:annotation-driven>
+
+	<!-- ReqeustMapping 과 Controller 클래스 매핑을 위한 annotation mvc 설정 -->
+	<bean class="org.egovframe.rte.ptl.mvc.bind.annotation.EgovRequestMappingHandlerAdapter">
+		<property name="customArgumentResolvers">
+			<list>
+				<bean class="org.egovframe.rte.ptl.mvc.bind.AnnotationCommandMapArgumentResolver" />
+			</list>
+		</property>
+	</bean>
+	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping" />
+
+	<!-- 파일 업로드 설정 -->
+	<!--
+		Servlet 3 기반 멀티파트 처리로 전환 (CSRF + multipart/form-data 403 방지)
+		- web.xml의 DispatcherServlet에 <multipart-config/> 필요
+	-->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.support.StandardServletMultipartResolver" />
+
+	<!-- 화면처리용 JSP 파일명의 prefix, suffix 처리에 대한 mvc 설정 -->
+	<bean class="org.springframework.web.servlet.view.UrlBasedViewResolver" p:order="1" p:viewClass="org.springframework.web.servlet.view.JstlView"
+		p:prefix="/WEB-INF/jsp" p:suffix=".jsp" />
+
+	<!-- For Pagination Tag -->
+	<bean class="com.yesjnet.cmmn.pagination.UserPaginationRenderer" id="userPaginationRenderer" />
+	<bean class="com.yesjnet.cmmn.pagination.CmsPaginationRenderer" id="cmsPaginationRenderer" />
+
+	<bean class="org.egovframe.rte.ptl.mvc.tags.ui.pagination.DefaultPaginationManager" id="paginationManager">
+		<property name="rendererType">
+			<map>
+				<entry key="user" value-ref="userPaginationRenderer" />
+				<entry key="cms" value-ref="cmsPaginationRenderer" />
+			</map>
+		</property>
+	</bean>
+	<!-- 인터셉터 설정 -->
+	<mvc:interceptors>
+		<!-- 콘트롤러 모델에 공통변수 셋팅이 필요한 URL을 처리한다. -->
+		<mvc:interceptor>
+			<mvc:mapping path="/**/*.do" />
+			<mvc:exclude-mapping path="/mobile/**/*.do" />
+			<mvc:exclude-mapping path="/admin/**/*.do" />
+			<mvc:exclude-mapping path="/**/*Proc.do" />
+			<mvc:exclude-mapping path="/**/*Logout.do" />
+			<mvc:exclude-mapping path="/cmmn/**/*.do" />
+			<mvc:exclude-mapping path="/*/include/**/*.do" />
+			<mvc:exclude-mapping path="/*/popup/**/*.do" />
+			<bean class="com.yesjnet.cmmn.interceptor.CommonInterceptor" />
+		</mvc:interceptor>
+
+		<!-- 사용자 접속 로그 -->
+		<mvc:interceptor>
+			<mvc:mapping path="/**/*.do" />
+			<mvc:exclude-mapping path="/admin/**/*.do" />
+			<mvc:exclude-mapping path="/**/*Proc.do" />
+			<mvc:exclude-mapping path="/**/*Logout.do" />
+			<mvc:exclude-mapping path="/cmmn/**/*.do" />
+			<mvc:exclude-mapping path="/*/include/**/*.do" />
+			<bean class="com.yesjnet.cmmn.interceptor.AccessCntLogInterceptor" />
+		</mvc:interceptor>
+
+		<!-- 관리자 로그인 및 권한 체크가 필요한 URL을 처리한다. -->
+		<mvc:interceptor>
+			<mvc:mapping path="/admin/**/*.do"/>
+			<mvc:exclude-mapping path="/admin/include/**/*.do"/>
+			<mvc:exclude-mapping path="/admin/staff/staffLogin*.do"/>
+			<mvc:exclude-mapping path="/admin/staff/dupLoginCheck.do"/>
+			<mvc:exclude-mapping path="/admin/staff/staffLogout*.do"/>
+			<mvc:exclude-mapping path="/admin/staff/staffApply*.do"/>
+			<mvc:exclude-mapping path="/admin/staff/cmsIdDupCheck.do"/>
+			<mvc:exclude-mapping path="/admin/menu/*/menuCreateList.do"/>
+			<bean class="com.yesjnet.cmmn.interceptor.CmsAuthCheckInterceptor" />
+		</mvc:interceptor>
+
+		<!-- 관리자 접근 IP 체크가 필요한 URL을 처리한다. -->
+		<mvc:interceptor>
+			<mvc:mapping path="/admin/**" />
+			<mvc:exclude-mapping path="/admin/menu/*/menuCreateList.do" />
+			<bean class="com.yesjnet.cmmn.interceptor.CmsIpCheckInterceptor" />
+		</mvc:interceptor>
+
+		<!-- 관리자 로그 -->
+		<mvc:interceptor>
+			<mvc:mapping path="/admin/**/*.do" />
+			<mvc:exclude-mapping path="/admin/include/**/*.do" />
+			<mvc:exclude-mapping path="/admin/ajax/**/*.do" />
+			<mvc:exclude-mapping path="/admin/cmmn/sesstionRefresh.do" />
+			<bean class="com.yesjnet.cmmn.interceptor.CmsLogInterceptor" />
+		</mvc:interceptor>
+
+	</mvc:interceptors>
+</beans>
