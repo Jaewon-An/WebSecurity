@@ -211,7 +211,7 @@ JSP 파일 상단에 Spring Security 태그라이브러리를 선언합니다.
 
 ---
 
-## 8. JSP 메타 태그 추가
+### 7.2. JSP 메타 태그 추가
 
 `<head>` 섹션에 CSRF 메타 태그를 추가합니다.
 
@@ -221,7 +221,7 @@ JSP 파일 상단에 Spring Security 태그라이브러리를 선언합니다.
 
 ---
 
-## 9. JSP AJAX 전역 설정
+### 7.3. JSP AJAX 전역 설정 (AJAX 사용할 경우)
 
 AJAX 요청에 CSRF 토큰을 자동으로 포함하도록 설정합니다.
 
@@ -241,9 +241,9 @@ $(document).ready(function() {
 
 ---
 
-## 10. JSP Form 설정
+## 8. JSP Form 설정
 
-### 10.1 Form 메소드 변경
+### 8.1 Form 메소드 변경
 
 Spring Security는 GET 메소드는 토큰 체크를 하지 않으므로, Form의 메소드를 POST로 변경합니다.
 
@@ -251,7 +251,7 @@ Spring Security는 GET 메소드는 토큰 체크를 하지 않으므로, Form�
 <form method="post" action="...">
 ```
 
-### 10.2 CSRF 토큰 필드 추가
+### 8.2 CSRF 토큰 필드 추가
 
 Form 내부에 CSRF 토큰 hidden 필드를 추가합니다.
 
