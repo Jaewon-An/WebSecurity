@@ -2,6 +2,8 @@
 
 Spring Security를 이용한 CSRF 토큰 구현 가이드입니다. (Spring Security 5.8.x 기준)
 
+**버전:** v20260127
+
 ---
 
 ## 1. pom.xml 의존성 추가
@@ -44,24 +46,24 @@ Spring Security 설정 파일을 생성합니다.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
+<beans xmlns="http://www.springframework.org/schema/beans" 
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:security="http://www.springframework.org/schema/security"
        xsi:schemaLocation="
-           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans 
            http://www.springframework.org/schema/beans/spring-beans.xsd
-           http://www.springframework.org/schema/security
+           http://www.springframework.org/schema/security 
            http://www.springframework.org/schema/security/spring-security.xsd">
 
-    <bean id="csrfTokenRepository"
+    <bean id="csrfTokenRepository" 
           class="org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository" />
 
     <!-- 인증 진입점(필수): 인증을 강제하지 않더라도 http 설정에 필요 -->
-    <bean id="authenticationEntryPoint"
+    <bean id="authenticationEntryPoint" 
           class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
     <security:http use-expressions="true" entry-point-ref="authenticationEntryPoint">
-        <security:csrf token-repository-ref="csrfTokenRepository"
+        <security:csrf token-repository-ref="csrfTokenRepository" 
                        request-matcher-ref="csrfRequestMatcher" />
         <security:headers>
             <security:frame-options policy="SAMEORIGIN" />
@@ -73,7 +75,7 @@ Spring Security 설정 파일을 생성합니다.
     <security:authentication-manager />
 
     <!-- CSRF 예외 처리 RequestMatcher: 안전 메서드는 제외, 특정 경로만 예외 -->
-    <bean id="csrfRequestMatcher"
+    <bean id="csrfRequestMatcher" 
           class="org.springframework.security.web.util.matcher.AndRequestMatcher">
         <constructor-arg>
             <list>
@@ -92,7 +94,7 @@ Spring Security 설정 파일을 생성합니다.
                         </bean>
                     </constructor-arg>
                 </bean>
-
+                
                 <!-- 예외 경로 1 -->
                 <bean class="org.springframework.security.web.util.matcher.NegatedRequestMatcher">
                     <constructor-arg>
@@ -101,7 +103,7 @@ Spring Security 설정 파일을 생성합니다.
                         </bean>
                     </constructor-arg>
                 </bean>
-
+                
                 <!-- 예외 경로 2 (필요시 추가) -->
                 <bean class="org.springframework.security.web.util.matcher.NegatedRequestMatcher">
                     <constructor-arg>
@@ -122,12 +124,12 @@ Spring Security 설정 파일을 생성합니다.
 
 `CommonsMultipartResolver`를 `StandardServletMultipartResolver`로 변경합니다.
 
-> **중요:** Servlet 3 기반 멀티파트 처리로 전환하여 CSRF + multipart/form-data 403 오류를 방지합니다.
+> **중요:** Servlet 3 기반 멀티파트 처리로 전환하여 CSRF + multipart/form-data 403 오류를 방지합니다.  
 > web.xml의 DispatcherServlet에 `<multipart-config/>` 추가가 필요합니다.
 
 ```xml
 <!-- 파일 업로드 설정 -->
-<bean id="multipartResolver"
+<bean id="multipartResolver" 
       class="org.springframework.web.multipart.support.StandardServletMultipartResolver"/>
 ```
 
@@ -154,7 +156,30 @@ Spring Security Filter Chain을 등록합니다.
 
 ---
 
-## 5. web.xml multipart-config 설정 추가
+## 5. 인코딩 필터에 forceEncoding 파라미터 추가
+
+인코딩 필터에 `forceEncoding` 파라미터를 추가합니다.
+
+> **필수:** 이 설정이 없으면 한글이 깨질 수 있습니다.
+
+```xml
+<filter>
+    <filter-name>encodingFilter</filter-name>
+    <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+    <init-param>
+        <param-name>encoding</param-name>
+        <param-value>utf-8</param-value>
+    </init-param>
+    <init-param>
+        <param-name>forceEncoding</param-name>
+        <param-value>true</param-value>  <!-- 이거 필수! -->
+    </init-param>
+</filter>
+```
+
+---
+
+## 6. web.xml multipart-config 설정 추가
 
 DispatcherServlet에 `<multipart-config/>` 설정을 추가합니다.
 
@@ -174,9 +199,9 @@ DispatcherServlet에 `<multipart-config/>` 설정을 추가합니다.
 
 ---
 
-## 6. JSP 파일 수정
+## 7. JSP 파일 수정
 
-### 6.1 태그라이브러리 선언
+### 7.1 태그라이브러리 선언
 
 JSP 파일 상단에 Spring Security 태그라이브러리를 선언합니다.
 
@@ -184,7 +209,9 @@ JSP 파일 상단에 Spring Security 태그라이브러리를 선언합니다.
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
 ```
 
-### 6.2 메타 태그 추가
+---
+
+## 8. JSP 메타 태그 추가
 
 `<head>` 섹션에 CSRF 메타 태그를 추가합니다.
 
@@ -192,7 +219,9 @@ JSP 파일 상단에 Spring Security 태그라이브러리를 선언합니다.
 <sec:csrfMetaTags />
 ```
 
-### 6.3 AJAX 전역 설정
+---
+
+## 9. JSP AJAX 전역 설정
 
 AJAX 요청에 CSRF 토큰을 자동으로 포함하도록 설정합니다.
 
@@ -210,16 +239,20 @@ $(document).ready(function() {
 </script>
 ```
 
-### 6.4 Form 설정
+---
 
-#### Form 메소드 변경
+## 10. JSP Form 설정
+
+### 10.1 Form 메소드 변경
+
 Spring Security는 GET 메소드는 토큰 체크를 하지 않으므로, Form의 메소드를 POST로 변경합니다.
 
 ```jsp
 <form method="post" action="...">
 ```
 
-#### CSRF 토큰 필드 추가
+### 10.2 CSRF 토큰 필드 추가
+
 Form 내부에 CSRF 토큰 hidden 필드를 추가합니다.
 
 ```jsp
@@ -231,25 +264,63 @@ Form 내부에 CSRF 토큰 hidden 필드를 추가합니다.
 
 ---
 
-## 체크리스트
+## 구현 체크리스트
 
-구현 시 아래 항목을 확인하세요.
+구현 시 아래 항목을 순서대로 확인하세요.
 
-- [ ] pom.xml에 Spring Security 의존성 추가
-- [ ] context-security.xml 파일 생성 및 설정
-- [ ] dispatcher-servlet.xml의 multipartResolver 변경
-- [ ] web.xml에 Spring Security Filter Chain 등록
-- [ ] web.xml의 DispatcherServlet에 multipart-config 추가
-- [ ] JSP에 Spring Security 태그라이브러리 선언
-- [ ] JSP에 CSRF 메타 태그 추가
-- [ ] JSP에 AJAX 전역 설정 추가
-- [ ] Form 메소드를 POST로 변경
-- [ ] Form에 CSRF 토큰 필드 추가
+- [ ] **1단계:** pom.xml에 Spring Security 의존성 추가
+- [ ] **2단계:** context-security.xml 파일 생성 및 설정
+- [ ] **3단계:** dispatcher-servlet.xml의 multipartResolver 변경
+- [ ] **4단계:** web.xml에 Spring Security Filter Chain 등록
+- [ ] **5단계:** web.xml 인코딩 필터에 forceEncoding 파라미터 추가 ⭐
+- [ ] **6단계:** web.xml의 DispatcherServlet에 multipart-config 추가
+- [ ] **7단계:** JSP에 Spring Security 태그라이브러리 선언
+- [ ] **8단계:** JSP에 CSRF 메타 태그 추가
+- [ ] **9단계:** JSP에 AJAX 전역 설정 추가
+- [ ] **10단계:** Form 메소드를 POST로 변경하고 CSRF 토큰 필드 추가
 
 ---
 
-## 참고사항
+## 주의사항
 
-- Spring Security 5.8.16 버전 기준으로 작성되었습니다.
-- CSRF 예외 경로는 프로젝트 요구사항에 맞게 추가/수정하세요.
-- 인코딩 필터는 Spring Security Filter Chain보다 먼저 등록되어야 합니다.
+### 필터 순서
+```
+1. Encoding Filter (forceEncoding=true)
+   ↓
+2. Spring Security Filter Chain
+```
+
+인코딩 필터가 Spring Security Filter Chain보다 먼저 등록되어야 한글이 깨지지 않습니다.
+
+### CSRF 예외 경로
+- GET 메소드는 기본적으로 CSRF 검사에서 제외됩니다.
+- 특정 경로를 예외로 설정해야 하는 경우 `context-security.xml`의 `csrfRequestMatcher`에 추가하세요.
+
+### 파일 업로드
+- `StandardServletMultipartResolver` 사용 시 반드시 `<multipart-config/>`를 DispatcherServlet에 추가해야 합니다.
+- 기존 `CommonsMultipartResolver`를 사용하면 CSRF + multipart/form-data 조합에서 403 오류가 발생할 수 있습니다.
+
+---
+
+## 버전 정보
+
+- **Spring Security 버전:** 5.8.16
+- **작성일:** 2026-01-27
+- **적용 환경:** Spring Framework XML 설정 방식
+
+---
+
+## 문제 해결
+
+### 한글이 깨지는 경우
+1. 인코딩 필터에 `forceEncoding=true` 설정 확인
+2. 인코딩 필터가 Spring Security Filter Chain보다 먼저 등록되었는지 확인
+
+### 파일 업로드 시 403 오류
+1. `StandardServletMultipartResolver` 사용 확인
+2. `<multipart-config/>` 설정 확인
+
+### AJAX 요청 시 403 오류
+1. CSRF 메타 태그 추가 확인
+2. AJAX 전역 설정 확인
+3. 브라우저 개발자 도구에서 요청 헤더에 `X-CSRF-TOKEN`이 포함되었는지 확인
