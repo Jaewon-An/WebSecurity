@@ -262,6 +262,15 @@ Form 내부에 CSRF 토큰 hidden 필드를 추가합니다.
 </form>
 ```
 
+### 9 CKEDITOR 이미지 업로드 CSRF 토큰 필드 추가
+
+/src/main/webapp/include/cms/plugins/ckeditor/config.js 파일 설정 변경
+
+```js
+config.filebrowserImageUploadUrl = $ctx+'/libcms/file/editorImageUpload.do?'+ encodeURIComponent('_csrf') + '=' + encodeURIComponent(document.querySelector("meta[name='_csrf']").content);
+config.filebrowserUploadMethod ='form';
+```
+
 ---
 
 ## 구현 체크리스트
@@ -278,7 +287,7 @@ Form 내부에 CSRF 토큰 hidden 필드를 추가합니다.
 - [ ] **8단계:** JSP에 CSRF 메타 태그 추가
 - [ ] **9단계:** JSP에 AJAX 전역 설정 추가
 - [ ] **10단계:** Form 메소드를 POST로 변경하고 CSRF 토큰 필드 추가
-
+- [ ] **11단계:** CKEDITOR 이미지 업로드 CSRF 토큰 필드 추가
 ---
 
 ## 주의사항
