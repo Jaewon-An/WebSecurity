@@ -9,7 +9,33 @@
 
 	<!-- 인증 진입점(필수): 인증을 강제하지 않더라도 http 설정에 필요 -->
 	<bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
+	<!-- 확장자 기반 패턴 예외처리(메모리 캐시). webp/avif/jpeg·eot·mjs·map·wasm 등 권장 확장자 포함 -->
+	<security:http pattern="/**/*.png" security="none" />
+	<security:http pattern="/**/*.jpg" security="none" />
+	<security:http pattern="/**/*.jpeg" security="none" />
+	<security:http pattern="/**/*.gif" security="none" />
+	<security:http pattern="/**/*.svg" security="none" />
+	<security:http pattern="/**/*.webp" security="none" />
+	<security:http pattern="/**/*.avif" security="none" />
+	<security:http pattern="/**/*.ico" security="none" />
+	<security:http pattern="/**/*.woff" security="none" />
+	<security:http pattern="/**/*.woff2" security="none" />
+	<security:http pattern="/**/*.ttf" security="none" />
+	<security:http pattern="/**/*.eot" security="none" />
+	<security:http pattern="/**/*.css" security="none" />
+	<security:http pattern="/**/*.js" security="none" />
+	<security:http pattern="/**/*.mjs" security="none" />
+	<security:http pattern="/**/*.map" security="none" />
+	<security:http pattern="/**/*.wasm" security="none" />
 
+	<!--
+		기본 HTTP 보안 필터 체인: 정적 리소스 위 패턴 외 요청에 적용.
+		- use-expressions: intercept-url의 access에 SpEL(예: permitAll) 사용.
+		- entry-point-ref: 인증이 필요한 요청에 대한 진입점(403 등). permitAll이어도 http 블록 구성상 지정.
+		- csrf: 세션 토큰 저장소 + csrfRequestMatcher로 검사 대상 요청 제한.
+		- headers/frame-options SAMEORIGIN: 동일 출처만 iframe 허용(클릭재킹 완화).
+		- intercept-url /** permitAll: URL별 접근 제어는 모두 허용(인증 강제 없음).
+	-->
 	<security:http use-expressions="true" entry-point-ref="authenticationEntryPoint">
 		<security:csrf token-repository-ref="csrfTokenRepository" request-matcher-ref="csrfRequestMatcher" />
 		<security:headers>
